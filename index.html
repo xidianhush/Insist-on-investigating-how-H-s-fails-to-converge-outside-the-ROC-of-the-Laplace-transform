@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拉普拉斯变换收敛域可视化</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<!-- MathJax v3: LaTeX 公式渲染 -->
+<script>
+window.MathJax = {
+    tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+    },
+    svg: { fontCache: 'global' },
+    options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+/* ===== 3b1b 暗色系全局 ===== */
+:root{
+    --bg:#0d1117;
+    --card:#181d28;
+    --card-border:#2a3344;
+    --text:#e8edf3;
+    --text-dim:#8b98a9;
+    --text-faint:#5c6878;
+    --accent-blue:#4a9eff;
+    --accent-green:#4ade80;
+    --accent-red:#f87171;
+    --accent-gold:#fbbf24;
+    --accent-purple:#c084fc;
+    --accent-cyan:#22d3ee;
+    --grid:#252d3b;
+}
+*{box-sizing:border-box}
+body{
+    max-width:1200px;
+    margin:0 auto;
+    padding:28px 20px 60px;
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.6;
+}
+h1{
+    text-align:center;
+    color:var(--text);
+    font-weight:700;
+    font-size:1.9em;
+    margin-bottom:6px;
+    letter-spacing:0.5px;
+}
+.subtitle{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.95em;
+    margin-bottom:32px;
+}
+.subtitle code{
+    background:var(--card);
+    padding:2px 8px;
+    border-radius:4px;
+    color:var(--accent-cyan);
+    font-size:0.9em;
+}
+.card{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:24px 26px;
+    margin-bottom:24px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.3);
+}
+h2{
+    color:var(--text);
+    margin-top:0;
+    margin-bottom:16px;
+    font-size:1.25em;
+    font-weight:600;
+    border-left:3px solid var(--accent-blue);
+    padding-left:12px;
+}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.note{font-size:0.88em;color:var(--text-dim);margin-top:10px}
+
+/* ===== 滑块 ===== */
+.control-block{margin-bottom:4px}
+.label-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+    font-size:0.95em;
+}
+.label-row span{color:var(--text-dim)}
+.label-row b{
+    color:var(--accent-blue);
+    font-family:'Consolas','Courier New',monospace;
+    font-size:1.05em;
+}
+input[type=range]{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:6px;
+    background:var(--grid);
+    border-radius:3px;
+    outline:none;
+    cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    appearance:none;
+    width:20px;height:20px;
+    border-radius:50%;
+    background:var(--accent-blue);
+    cursor:pointer;
+    box-shadow:0 0 10px rgba(74,158,255,0.5);
+    border:2px solid var(--bg);
+    transition:transform 0.15s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+input[type=range]::-moz-range-thumb{
+    width:20px;height:20px;
+    border-radius:50%;
+    background:var(--accent-blue);
+    cursor:pointer;
+    border:2px solid var(--bg);
+    box-shadow:0 0 10px rgba(74,158,255,0.5);
+}
+
+/* ===== 按钮 ===== */
+.btn-dark{
+    padding:7px 16px;
+    border:1px solid var(--card-border);
+    border-radius:7px;
+    background:var(--grid);
+    color:var(--text-dim);
+    cursor:pointer;
+    font-size:0.88em;
+    transition:all 0.2s;
+    float:right;
+}
+.btn-dark:hover{
+    background:var(--accent-blue);
+    color:var(--bg);
+    border-color:var(--accent-blue);
+}
+
+/* ===== 结论卡片 ===== */
+.conclusion-card{
+    background:linear-gradient(135deg,#141b2a 0%,#1a1f30 100%);
+    border:1px solid #2a3a55;
+}
+.conclusion-card h2{
+    border-left-color:var(--accent-gold);
+    color:var(--accent-gold);
+}
+.conclusion-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:16px;
+}
+.conclusion-item{
+    background:rgba(255,255,255,0.03);
+    border:1px solid var(--card-border);
+    padding:16px 18px;
+    border-radius:10px;
+    transition:transform 0.2s,border-color 0.2s;
+}
+.conclusion-item:hover{
+    transform:translateY(-2px);
+    border-color:var(--accent-blue);
+}
+.conclusion-item b{
+    display:block;
+    font-size:1.05em;
+    margin-bottom:8px;
+}
+.conclusion-item p{
+    font-size:0.88em;
+    color:var(--text-dim);
+    margin:0;
+    line-height:1.55;
+}
+.c-green{color:var(--accent-green)}
+.c-gold{color:var(--accent-gold)}
+.c-red{color:var(--accent-red)}
+
+/* ===== 公式高亮 ===== */
+.formula-center{
+    text-align:center;
+    margin-top:12px;
+    background:rgba(34,211,238,0.06);
+    padding:14px 20px;
+    border-radius:8px;
+    border:1px solid rgba(34,211,238,0.15);
+}
+.formula-center .formula-desc{
+    display:block;
+    margin-top:10px;
+    font-size:0.9em;
+    color:var(--text-dim);
+}
+
+/* ===== MathJax 暗色主题适配 ===== */
+mjx-container[jax="CHTML"]{
+    color:var(--text) !important;
+}
+.formula-center mjx-container[jax="CHTML"]{
+    color:var(--accent-cyan) !important;
+    font-size:1.15em !important;
+}
+h2 mjx-container[jax="CHTML"]{
+    font-size:0.95em !important;
+}
+.subtitle mjx-container[jax="CHTML"]{
+    font-size:0.95em !important;
+}
+</style>
+</head>
+<body>
+
+<h1>非要研究拉普拉斯变换ROC外的$H(s)$是怎么样不收敛的</h1>
+<p class="subtitle">
+    以 $x(t) = e^{-\alpha t} u(t)$ 为例 &nbsp;|&nbsp;
+    $X(s) = \dfrac{1}{s+\alpha}$ &nbsp;|&nbsp;
+    ROC: $\operatorname{Re}(s) > -\alpha$
+</p>
+
+<!-- 控制面板 -->
+<div class="card">
+<div class="row">
+    <div class="control-block">
+        <div class="label-row"><span>积分上限 T</span><b id="Tv">5.0</b></div>
+        <input type="range" id="Ts" min="0" max="30" step="0.2" value="5">
+    </div>
+    <div class="control-block">
+        <div class="label-row"><span>衰减系数 α</span><b id="Av">1.0</b></div>
+        <input type="range" id="As" min="0.2" max="3" step="0.1" value="1">
+    </div>
+</div>
+</div>
+
+<!-- 3D 模-相图 -->
+<div class="card">
+    <h2>1. 3D 模-相图（Z轴 = 幅值，颜色 = 相角）</h2>
+    <div id="p3d" style="height:520px"></div>
+    <p class="note">红色竖线 = ROC 边界 $\sigma = -\alpha$，金色菱形 = 极点。拖动 $T$ 滑块看曲面演化，鼠标可旋转 / 缩放 / 平移。</p>
+</div>
+
+<!-- 复平面内：ROC内、/sigma=alpha、sigma</alpha处的点对比对比 -->
+<div class="card">
+    <h2>2. 复平面内三点对比：ROC 内 / 边界 $\sigma = -\alpha$ / ROC 外 — $|Z(s)|$ 随 $T$ 变化</h2>
+    <button id="logBtn" class="btn-dark">切换对数坐标</button>
+    <div id="pcmp" style="height:400px"></div>
+</div>
+
+<!-- 专门看看/sigma/alpha这个情况 -->
+<div class="card">
+    <h2>3. ROC 边界振荡专题（$\sigma = -\alpha$）</h2>
+    <div id="pbnd" style="height:400px"></div>
+    <div class="formula-center">
+        $$|Z(s)| = \frac{2\left|\sin\left(\dfrac{\omega T}{2}\right)\right|}{|\omega|}$$
+        <span class="formula-desc">振幅 $= \dfrac{2}{|\omega|}$，&nbsp; 周期 $= \dfrac{2\pi}{|\omega|}$，&nbsp; 永不收敛</span>
+    </div>
+</div>
+
+<!-- 核心结论 -->
+<div class="card conclusion-card">
+    <h2>核心结论</h2>
+    <div class="conclusion-grid">
+        <div class="conclusion-item">
+            <b class="c-green">● 收敛 = 曲线贴平</b>
+            <p>ROC 内 $T$ 增大后 $|Z(s)|$ 趋于定值，极限存在，频域表示唯一确定。逆变换能还原出完整时域信号。</p>
+        </div>
+        <div class="conclusion-item">
+            <b class="c-gold">● 振荡 = 相位不收敛</b>
+            <p>边界上模不爆炸，但相位 $e^{-j\omega T}$ 持续旋转，极限不存在。逆变换得不到确定的时域信号。</p>
+        </div>
+        <div class="conclusion-item">
+            <b class="c-red">● 发散 = 指数爆炸</b>
+            <p>ROC 外幅值随 T 指数增长，积分无意义。解析延拓后的函数值只是数学构造，不代表信号频谱。</p>
+        </div>
+    </div>
+</div>
+
+<script>
+let alpha = 1.0, T = 5.0, isLog = false;
+
+// 保存 3D 图当前视角，避免拖动滑块时视角被重置
+let currentCamera = {eye:{x:1.7, y:-1.9, z:1.25}};
+
+// ===== 暗色主题通用配置 =====
+const DARK_FONT = {color:'#e8edf3', family:"'Segoe UI',system-ui,sans-serif", size:12};
+const DARK_GRID = '#252d3b';
+const DARK_ZERO = '#3a4556';
+
+// ===== 核心计算函数 =====
+function cz(sig, om, T, a){
+    const sr = a + sig, si = om;
+    const er = Math.exp(-sr * T);
+    const ec = Math.cos(om * T), es = Math.sin(om * T);
+    const nr = 1 - er * ec, ni = er * es;
+    const dm2 = sr * sr + si * si;
+    if(dm2 < 1e-10) return {m:1e6, p:0};
+    const r = (nr * sr + ni * si) / dm2;
+    const i = (ni * sr - nr * si) / dm2;
+    return {m:Math.sqrt(r*r + i*i), p:Math.atan2(i, r)};
+}
+
+// ===== 生成网格 =====
+function grid(T, a){
+    const smin = -3, smax = 1, wmin = -3, wmax = 3, step = 0.1;
+    const sv = [], wv = [];
+    for(let s = smin; s <= smax; s += step) sv.push(s);
+    for(let w = wmin; w <= wmax; w += step) wv.push(w);
+    const mg = [], pg = [];
+    for(let i = 0; i < sv.length; i++){
+        const mr = [], pr = [];
+        for(let j = 0; j < wv.length; j++){
+            const z = cz(sv[i], wv[j], T, a);
+            mr.push(Math.min(z.m, 10));
+            pr.push(z.p);
+        }
+        mg.push(mr); pg.push(pr);
+    }
+    return {sv, wv, mg, pg};
+}
+
+// ===== 绘制 3D 模-相图 =====
+function draw3d(){
+    const d = grid(T, alpha);
+    const surf = {
+        x: d.wv, y: d.sv, z: d.mg,
+        surfacecolor: d.pg,
+        type: 'surface',
+        colorscale: 'HSV',
+        cmin: -Math.PI, cmax: Math.PI,
+        colorbar: {
+            title: {text:'相角', font:DARK_FONT},
+            tickfont: DARK_FONT,
+            tickvals: [-3.14, -1.57, 0, 1.57, 3.14],
+            ticktext: ['-π', '-π/2', '0', 'π/2', 'π'],
+            thickness: 15
+        },
+        contours: {z: {show:false}}
+    };
+    // ROC 边界线
+    const bx = d.wv, by = Array(bx.length).fill(-alpha), bz = Array(bx.length).fill(10);
+    const bnd = {
+        x: bx, y: by, z: bz,
+        type: 'scatter3d', mode: 'lines',
+        line: {color: '#f87171', width: 5},
+        name: 'ROC边界', showlegend: false
+    };
+    // 极点标记
+    const pole = {
+        x: [0], y: [-alpha], z: [10],
+        type: 'scatter3d', mode: 'markers',
+        marker: {color: '#fbbf24', size: 9, symbol: 'diamond',
+                 line:{color:'#0d1117', width:1.5}},
+        name: '极点', showlegend: false
+    };
+
+    Plotly.react('p3d', [surf, bnd, pole], {
+        paper_bgcolor: '#181d28',
+        scene: {
+            xaxis: {title:{text:'ω (虚轴)',font:DARK_FONT}, tickfont:DARK_FONT,
+                    gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28'},
+            yaxis: {title:{text:'σ (实轴)',font:DARK_FONT}, tickfont:DARK_FONT,
+                    gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28'},
+            zaxis: {title:{text:'|Z(s)|',font:DARK_FONT}, tickfont:DARK_FONT,
+                    gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28',
+                    range:[0, 10]},
+            bgcolor: '#181d28',
+            camera: currentCamera,
+            aspectmode: 'cube'
+        },
+        margin: {l:0, r:0, t:40, b:0},
+        title: {text:'T = ' + T.toFixed(1), font:{...DARK_FONT, size:15, color:'#4a9eff'}}
+    }, {responsive: true, displaylogo: false});
+}
+
+// ===== 绘制复平面三点对比图（ROC内 / 边界 / ROC外）=====
+function drawCmp(){
+    const Tv = [];
+    for(let t = 0.1; t <= 30; t += 0.2) Tv.push(t);
+    const om = 1;
+    const sigs = [0, -alpha, -2];
+    const labs = ['σ = 0 (ROC 内)', 'σ = ' + (-alpha).toFixed(1) + ' (边界)', 'σ = -2 (ROC 外)'];
+    const cols = ['#4ade80', '#fbbf24', '#f87171'];
+    const tr = [];
+    for(let i = 0; i < 3; i++){
+        tr.push({
+            x: Tv,
+            y: Tv.map(t => cz(sigs[i], om, t, alpha).m),
+            mode: 'lines',
+            name: labs[i],
+            line: {color: cols[i], width: 2.5}
+        });
+    }
+    // 理论收敛值
+    const tm = 1 / Math.sqrt(alpha*alpha + om*om);
+    tr.push({
+        x: [0, 30], y: [tm, tm],
+        mode: 'lines', name: '理论值 ' + tm.toFixed(3),
+        line: {color: '#86efac', width: 1.2, dash: 'dash'}
+    });
+
+    Plotly.react('pcmp', tr, {
+        paper_bgcolor: '#181d28',
+        plot_bgcolor: '#181d28',
+        font: DARK_FONT,
+        xaxis: {
+            title: {text:'T (积分上限)', font:DARK_FONT},
+            tickfont: DARK_FONT, gridcolor: DARK_GRID, zerolinecolor: DARK_ZERO
+        },
+        yaxis: {
+            title: {text:'|Z(s)|', font:DARK_FONT},
+            tickfont: DARK_FONT, gridcolor: DARK_GRID, zerolinecolor: DARK_ZERO,
+            type: isLog ? 'log' : 'linear',
+            range: isLog ? [-2, 3] : [0, 4.5]
+        },
+        margin: {l:55, r:15, t:15, b:45},
+        legend: {x:0.68, y:0.96, bgcolor:'rgba(0,0,0,0)', font:DARK_FONT},
+        hovermode: 'x unified'
+    }, {responsive: true, displaylogo: false});
+}
+
+// ===== 绘制 ROC 边界振荡专题图 =====
+function drawBnd(){
+    const Tv = [];
+    for(let t = 0; t <= 20; t += 0.1) Tv.push(t);
+    const oms = [0.3, 0.5, 1.0, 2.0];
+    const cols = ['#c084fc', '#60a5fa', '#22d3ee', '#34d399'];
+    const tr = [];
+    for(let i = 0; i < 4; i++){
+        tr.push({
+            x: Tv,
+            y: Tv.map(t => cz(-alpha, oms[i], t, alpha).m),
+            mode: 'lines',
+            name: 'ω = ' + oms[i],
+            line: {color: cols[i], width: 2.2}
+        });
+    }
+
+    Plotly.react('pbnd', tr, {
+        paper_bgcolor: '#181d28',
+        plot_bgcolor: '#181d28',
+        font: DARK_FONT,
+        xaxis: {
+            title: {text:'T (积分上限)', font:DARK_FONT},
+            tickfont: DARK_FONT, gridcolor: DARK_GRID, zerolinecolor: DARK_ZERO
+        },
+        yaxis: {
+            title: {text:'|Z(s)|', font:DARK_FONT},
+            tickfont: DARK_FONT, gridcolor: DARK_GRID, zerolinecolor: DARK_ZERO
+        },
+        margin: {l:55, r:15, t:15, b:45},
+        legend: {x:0.85, y:0.96, bgcolor:'rgba(0,0,0,0)', font:DARK_FONT},
+        hovermode: 'x unified'
+    }, {responsive: true, displaylogo: false});
+}
+
+// ===== 事件绑定 =====
+document.getElementById('Ts').oninput = e => {
+    T = +e.target.value;
+    document.getElementById('Tv').textContent = T.toFixed(1);
+    draw3d();
+};
+document.getElementById('As').oninput = e => {
+    alpha = +e.target.value;
+    document.getElementById('Av').textContent = alpha.toFixed(1);
+    draw3d(); drawCmp(); drawBnd();
+};
+document.getElementById('logBtn').onclick = () => {
+    isLog = !isLog;
+    drawCmp();
+};
+
+window.onload = () => {
+    draw3d(); drawCmp(); drawBnd();
+    // 监听 3D 图视角变化，用户旋转/缩放后保存当前视角
+    document.getElementById('p3d').on('plotly_relayout', function(eventdata){
+        if(eventdata['scene.camera']){
+            currentCamera = eventdata['scene.camera'];
+        }
+    });
+};
+</script>
+</body>
+</html>
