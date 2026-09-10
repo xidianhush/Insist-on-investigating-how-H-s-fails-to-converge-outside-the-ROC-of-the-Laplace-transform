@@ -263,8 +263,11 @@ h2 mjx-container[jax="CHTML"]{
 <div class="card">
 <div class="row">
     <div class="control-block">
-        <div class="label-row"><span>积分上限 $T$</span><b id="Tv">5.0</b></div>
-        <input type="range" id="Ts" min="0" max="30" step="0.2" value="5">
+        <div class="label-row">
+            <span>积分上限 $T$（$T<0$ 时积分区间落在 $t<0$，信号为 0）</span>
+            <b id="Tv">5.0</b>
+        </div>
+        <input type="range" id="Ts" min="-30" max="30" step="0.2" value="5">
     </div>
     <div class="control-block">
         <div class="label-row"><span>衰减系数 $\alpha$</span><b id="Av">1.0</b></div>
@@ -327,6 +330,9 @@ const DARK_ZERO = '#3a4556';
 
 // ===== 核心计算函数 =====
 function cz(sig, om, T, a){
+    // 因果信号 x(t)=e^{-a*t}u(t), t<0 时为 0
+    // T <= 0 时积分区间落在 t<0, 被积函数为 0
+    if(T <= 0) return {m:0, p:0};
     const sr = a + sig, si = om;
     const er = Math.exp(-sr * T);
     const ec = Math.cos(om * T), es = Math.sin(om * T);
@@ -360,6 +366,8 @@ function grid(T, a){
 // ===== 绘制 3D 模-相图 =====
 function draw3d(){
     const d = grid(T, alpha);
+    const lo = Math.min(0, T).toFixed(1);
+    const hi = Math.max(0, T).toFixed(1);
     const surf = {
         x: d.wv, y: d.sv, z: d.mg,
         surfacecolor: d.pg,
@@ -403,7 +411,8 @@ function draw3d(){
             aspectmode: 'cube'
         },
         margin: {l:0, r:0, t:40, b:0},
-        title: {text:'T = ' + T.toFixed(1), font:{...DARK_FONT, size:15, color:'#4a9eff'}}
+        title: {text:'T = ' + T.toFixed(1) + '  (区间 [' + lo + ', ' + hi + '])',
+                font:{...DARK_FONT, size:15, color:'#4a9eff'}}
     }, {responsive: true, displaylogo: false});
 }
 

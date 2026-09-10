@@ -227,10 +227,10 @@ h2 mjx-container[jax="CHTML"]{
     </div>
     <div class="control-block">
         <div class="label-row">
-            <span>积分深度 $T$（区间 $[-T, 0]$，向左延伸）</span>
+            <span>积分深度 $T$（$T<0$ 时积分区间落在 $t>0$，信号为 0）</span>
             <b id="Tv">5.0</b>
         </div>
-        <input type="range" id="Ts" min="0" max="30" step="0.2" value="5">
+        <input type="range" id="Ts" min="-30" max="30" step="0.2" value="5">
     </div>
 </div>
 </div>
@@ -282,6 +282,9 @@ const DARK_ZERO = '#3a4556';
 // x(t) = -e^{-alpha*t} * u(-t), 积分从 -T 到 0
 // X_T(s) = [1 - e^{(alpha+s)*T}] / (alpha+s)
 function cz_anticausal(sig, om, T, a){
+    // 反因果信号 x(t)=-e^{-a*t}u(-t), t>0 时为 0
+    // T <= 0 时积分区间落在 t>0, 被积函数为 0
+    if(T <= 0) return {m:0, p:0};
     const sr = a + sig, si = om;  // alpha + s
     const emag = Math.exp(sr * T);
     const er = emag * Math.cos(si * T);
@@ -316,6 +319,8 @@ function grid_anticausal(T, a){
 
 function drawAnticausal(){
     const d = grid_anticausal(T, alpha);
+    const left = Math.min(-T, 0).toFixed(1);
+    const right = Math.max(-T, 0).toFixed(1);
     const surf = {
         x: d.wv, y: d.sv, z: d.mg,
         surfacecolor: d.pg,
@@ -359,7 +364,7 @@ function drawAnticausal(){
             aspectmode: 'cube'
         },
         margin: {l:0, r:0, t:40, b:0},
-        title: {text:'T = ' + T.toFixed(1) + '  (区间 [-' + T.toFixed(1) + ', 0])',
+        title: {text:'T = ' + T.toFixed(1) + '  (区间 [' + left + ', ' + right + '])',
                 font:{...DARK_FONT, size:14, color:'#4a9eff'}}
     }, {responsive: true, displaylogo: false});
 }
