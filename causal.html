@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>拉普拉斯变换收敛域可视化 — 双边信号</title>
+<title>拉普拉斯变换收敛域可视化 — 因果信号</title>
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <!-- MathJax v3: LaTeX 公式渲染 -->
 <script>
@@ -108,7 +108,7 @@ h2{
 }
 
 /* ===== 滑块 ===== */
-.control-block{margin-bottom:14px}
+.control-block{margin-bottom:4px}
 .label-row{
     display:flex;
     justify-content:space-between;
@@ -153,6 +153,24 @@ input[type=range]::-moz-range-thumb{
     box-shadow:0 0 10px rgba(74,158,255,0.5);
 }
 
+/* ===== 按钮 ===== */
+.btn-dark{
+    padding:7px 16px;
+    border:1px solid var(--card-border);
+    border-radius:7px;
+    background:var(--grid);
+    color:var(--text-dim);
+    cursor:pointer;
+    font-size:0.88em;
+    transition:all 0.2s;
+    float:right;
+}
+.btn-dark:hover{
+    background:var(--accent-blue);
+    color:var(--bg);
+    border-color:var(--accent-blue);
+}
+
 /* ===== 结论卡片 ===== */
 .conclusion-card{
     background:linear-gradient(135deg,#141b2a 0%,#1a1f30 100%);
@@ -164,7 +182,7 @@ input[type=range]::-moz-range-thumb{
 }
 .conclusion-grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:1fr 1fr 1fr;
     gap:16px;
 }
 .conclusion-item{
@@ -192,11 +210,30 @@ input[type=range]::-moz-range-thumb{
 .c-green{color:var(--accent-green)}
 .c-gold{color:var(--accent-gold)}
 .c-red{color:var(--accent-red)}
-.c-cyan{color:var(--accent-cyan)}
+
+/* ===== 公式高亮 ===== */
+.formula-center{
+    text-align:center;
+    margin-top:12px;
+    background:rgba(34,211,238,0.06);
+    padding:14px 20px;
+    border-radius:8px;
+    border:1px solid rgba(34,211,238,0.15);
+}
+.formula-center .formula-desc{
+    display:block;
+    margin-top:10px;
+    font-size:0.9em;
+    color:var(--text-dim);
+}
 
 /* ===== MathJax 暗色主题适配 ===== */
 mjx-container[jax="CHTML"]{
     color:var(--text) !important;
+}
+.formula-center mjx-container[jax="CHTML"]{
+    color:var(--accent-cyan) !important;
+    font-size:1.15em !important;
 }
 h2 mjx-container[jax="CHTML"]{
     font-size:0.95em !important;
@@ -210,119 +247,99 @@ h2 mjx-container[jax="CHTML"]{
 
 <!-- 导航 Tab -->
 <div class="nav-tabs">
-    <a href="index.html" class="nav-tab active">双边信号 $x(t)=e^{-a|t|}$</a>
-    <a href="causal.html" class="nav-tab">因果信号 $x(t)=e^{-\alpha t}u(t)$</a>
+    <a href="index.html" class="nav-tab">双边信号 $x(t)=e^{-a|t|}$</a>
+    <a href="causal.html" class="nav-tab active">因果信号 $x(t)=e^{-\alpha t}u(t)$</a>
 </div>
 
 <h1>拉普拉斯变换收敛域 (ROC) 可视化</h1>
 <p class="subtitle">
-    双边信号 $x(t) = e^{-a|t|}$ &nbsp;|&nbsp;
-    $X(s) = \dfrac{2a}{a^2-s^2}$ &nbsp;|&nbsp;
-    ROC: $-a < \operatorname{Re}(s) < a$（带状）
+    因果信号 $x(t) = e^{-\alpha t} u(t)$ &nbsp;|&nbsp;
+    $X(s) = \dfrac{1}{s+\alpha}$ &nbsp;|&nbsp;
+    ROC: $\operatorname{Re}(s) > -\alpha$（半平面）
 </p>
 
 <!-- 控制面板 -->
 <div class="card">
 <div class="row">
     <div class="control-block">
-        <div class="label-row"><span>衰减系数 $a$</span><b id="Av">1.0</b></div>
-        <input type="range" id="As" min="0.2" max="2.5" step="0.1" value="1">
+        <div class="label-row"><span>积分上限 $T$</span><b id="Tv">5.0</b></div>
+        <input type="range" id="Ts" min="0" max="30" step="0.2" value="5">
     </div>
     <div class="control-block">
-        <div class="label-row">
-            <span>积分窗口右端点 $T_{\text{right}}$（左端点固定 $-30$）</span>
-            <b id="Trv">0.0</b>
-        </div>
-        <input type="range" id="Trs" min="-30" max="30" step="0.5" value="0">
+        <div class="label-row"><span>衰减系数 $\alpha$</span><b id="Av">1.0</b></div>
+        <input type="range" id="As" min="0.2" max="3" step="0.1" value="1">
     </div>
 </div>
 </div>
 
 <!-- 3D 模-相图 -->
 <div class="card">
-    <h2>3D 模-相图（Z轴 = 幅值，颜色 = 相角）</h2>
-    <div id="pbi" style="height:560px"></div>
-    <p class="note">
-        两个极点 $s = \pm a$（金色菱形），两条红色竖线为 ROC 边界 $\sigma = \pm a$。
-        拖动 $T_{\text{right}}$ 从左到右：积分窗口从空 → 只含负时间部分 $e^{at}$（要求 $\sigma<a$）→ 逐渐加入正时间部分 $e^{-at}$（要求 $\sigma>-a$）→ 完整双边积分。
-        两者收敛条件的交集就是带状 ROC $-a<\sigma<a$。鼠标可旋转 / 缩放 / 平移。
-    </p>
+    <h2>1. 3D 模-相图（Z轴 = 幅值，颜色 = 相角）</h2>
+    <div id="p3d" style="height:520px"></div>
+    <p class="note">红色竖线 = ROC 边界 $\sigma = -\alpha$，金色菱形 = 极点。拖动 $T$ 滑块看曲面演化，鼠标可旋转 / 缩放 / 平移。</p>
+</div>
+
+<!-- 三点对比 -->
+<div class="card">
+    <h2>2. 复平面内三点对比：ROC 内 / 边界 $\sigma = -\alpha$ / ROC 外 — $|Z(s)|$ 随 $T$ 变化</h2>
+    <button id="logBtn" class="btn-dark">切换对数坐标</button>
+    <div id="pcmp" style="height:400px"></div>
+</div>
+
+<!-- 边界振荡专题 -->
+<div class="card">
+    <h2>3. ROC 边界振荡专题（$\sigma = -\alpha$）</h2>
+    <div id="pbnd" style="height:400px"></div>
+    <div class="formula-center">
+        $$|Z(s)| = \frac{2\left|\sin\left(\dfrac{\omega T}{2}\right)\right|}{|\omega|}$$
+        <span class="formula-desc">振幅 $= \dfrac{2}{|\omega|}$，&nbsp; 周期 $= \dfrac{2\pi}{|\omega|}$，&nbsp; 永不收敛</span>
+    </div>
 </div>
 
 <!-- 核心结论 -->
 <div class="card conclusion-card">
-    <h2>双边信号的核心结论</h2>
+    <h2>核心结论</h2>
     <div class="conclusion-grid">
         <div class="conclusion-item">
-            <b class="c-cyan">● 负时间部分 $t<0$：$x(t)=e^{at}$</b>
-            <p>积分 $\int_{-\infty}^0 e^{(a-s)t}dt$ 收敛条件为 $\operatorname{Re}(s) < a$。对应复平面左半部分（极点 $s=a$ 左侧）。</p>
+            <b class="c-green">● 收敛 = 曲线贴平</b>
+            <p>ROC 内 $T$ 增大后 $|Z(s)|$ 趋于定值，极限存在，频域表示唯一确定。逆变换能还原出完整时域信号。</p>
         </div>
         <div class="conclusion-item">
-            <b class="c-green">● 正时间部分 $t>0$：$x(t)=e^{-at}$</b>
-            <p>积分 $\int_0^\infty e^{-(a+s)t}dt$ 收敛条件为 $\operatorname{Re}(s) > -a$。对应复平面右半部分（极点 $s=-a$ 右侧）。</p>
+            <b class="c-gold">● 振荡 = 相位不收敛</b>
+            <p>边界上模不爆炸，但相位 $e^{-j\omega T}$ 持续旋转，极限不存在。逆变换得不到确定的时域信号。</p>
         </div>
         <div class="conclusion-item">
-            <b class="c-gold">● ROC = 两部分收敛条件的交集</b>
-            <p>$-a < \sigma < a$，是一条带状区域。带宽为 $2a$，$a$ 越小 ROC 越窄。这和因果信号的半平面 ROC 形成本质区别。</p>
-        </div>
-        <div class="conclusion-item">
-            <b class="c-red">● 两个极点决定系统模态</b>
-            <p>$s=a$ 对应负时间的增长模态，$s=-a$ 对应正时间的衰减模态。双边信号的时域响应由两个极点共同决定，逆变换需要同时考虑两个极点的留数。</p>
+            <b class="c-red">● 发散 = 指数爆炸</b>
+            <p>ROC 外幅值随 $T$ 指数增长，积分无意义。解析延拓后的函数值只是数学构造，不代表信号频谱。</p>
         </div>
     </div>
 </div>
 
 <script>
-let alpha = 1.0, T_right = 0.0;
-let bilateralCamera = {eye:{x:1.7, y:-1.9, z:1.25}};
+let alpha = 1.0, T = 5.0, isLog = false;
+let currentCamera = {eye:{x:1.7, y:-1.9, z:1.25}};
 
 // ===== 暗色主题通用配置 =====
 const DARK_FONT = {color:'#e8edf3', family:"'Segoe UI',system-ui,sans-serif", size:12};
 const DARK_GRID = '#252d3b';
 const DARK_ZERO = '#3a4556';
 
-// ===== 双边信号计算 =====
-function cz_bilateral(sig, om, T_left, T_right, a){
-    // 负时间部分(t<0): x=e^{at}, [1 - e^{-(a-s)T_left}]/(a-s)
-    const d1r = a - sig, d1i = -om;
-    const e1mag = Math.exp(-(a - sig) * T_left);
-    const e1r = e1mag * Math.cos(om * T_left);
-    const e1i = e1mag * Math.sin(om * T_left);
-    const n1r = 1 - e1r, n1i = -e1i;
-    const d1m2 = d1r*d1r + d1i*d1i;
-    let p1r = 0, p1i = 0;
-    if(d1m2 > 1e-10){
-        p1r = (n1r*d1r + n1i*d1i) / d1m2;
-        p1i = (n1i*d1r - n1r*d1i) / d1m2;
-    }
-
-    // 正时间部分(t>0): x=e^{-at}, [1 - e^{-(a+s)T_right}]/(a+s)
-    const d2r = a + sig, d2i = om;
-    const e2mag = Math.exp(-(a + sig) * T_right);
-    const e2r = e2mag * Math.cos(-om * T_right);
-    const e2i = e2mag * Math.sin(-om * T_right);
-    const n2r = 1 - e2r, n2i = -e2i;
-    const d2m2 = d2r*d2r + d2i*d2i;
-    let p2r = 0, p2i = 0;
-    if(d2m2 > 1e-10){
-        p2r = (n2r*d2r + n2i*d2i) / d2m2;
-        p2i = (n2i*d2r - n2r*d2i) / d2m2;
-    }
-
-    p1r = isFinite(p1r) ? p1r : 1e6;
-    p1i = isFinite(p1i) ? p1i : 0;
-    p2r = isFinite(p2r) ? p2r : 1e6;
-    p2i = isFinite(p2i) ? p2i : 0;
-
-    const Zr = p1r + p2r;
-    const Zi = p1i + p2i;
-    const mag = Math.sqrt(Zr*Zr + Zi*Zi);
-    const phase = Math.atan2(Zi, Zr);
-    return {m: Math.min(mag, 10), p: phase};
+// ===== 核心计算函数 =====
+function cz(sig, om, T, a){
+    const sr = a + sig, si = om;
+    const er = Math.exp(-sr * T);
+    const ec = Math.cos(om * T), es = Math.sin(om * T);
+    const nr = 1 - er * ec, ni = er * es;
+    const dm2 = sr*sr + si*si;
+    if(dm2 < 1e-10) return {m:1e6, p:0};
+    const r = (nr*sr + ni*si) / dm2;
+    const i = (ni*sr - nr*si) / dm2;
+    return {m:Math.sqrt(r*r + i*i), p:Math.atan2(i, r)};
 }
 
-function grid_bilateral(T_left, T_right, a){
-    const smin = -3, smax = 3, wmin = -3, wmax = 3, step = 0.12;
+// ===== 生成网格 =====
+function grid(T, a){
+    const smin = -3, smax = 1, wmin = -3, wmax = 3, step = 0.1;
     const sv = [], wv = [];
     for(let s = smin; s <= smax; s += step) sv.push(s);
     for(let w = wmin; w <= wmax; w += step) wv.push(w);
@@ -330,17 +347,18 @@ function grid_bilateral(T_left, T_right, a){
     for(let i = 0; i < sv.length; i++){
         const mr = [], pr = [];
         for(let j = 0; j < wv.length; j++){
-            const z = cz_bilateral(sv[i], wv[j], T_left, T_right, a);
-            mr.push(z.m); pr.push(z.p);
+            const z = cz(sv[i], wv[j], T, a);
+            mr.push(Math.min(z.m, 10));
+            pr.push(z.p);
         }
         mg.push(mr); pg.push(pr);
     }
     return {sv, wv, mg, pg};
 }
 
-function drawBilateral(){
-    const T_left = 30;
-    const d = grid_bilateral(T_left, T_right, alpha);
+// ===== 绘制 3D 模-相图 =====
+function draw3d(){
+    const d = grid(T, alpha);
     const surf = {
         x: d.wv, y: d.sv, z: d.mg,
         surfacecolor: d.pg,
@@ -356,67 +374,137 @@ function drawBilateral(){
         },
         contours: {z: {show:false}}
     };
-    const bx = d.wv;
-    const bnd1 = {
-        x: bx, y: Array(bx.length).fill(-alpha), z: Array(bx.length).fill(10),
+    const bx = d.wv, by = Array(bx.length).fill(-alpha), bz = Array(bx.length).fill(10);
+    const bnd = {
+        x: bx, y: by, z: bz,
         type: 'scatter3d', mode: 'lines',
         line: {color: '#f87171', width: 5}, showlegend: false
     };
-    const bnd2 = {
-        x: bx, y: Array(bx.length).fill(alpha), z: Array(bx.length).fill(10),
-        type: 'scatter3d', mode: 'lines',
-        line: {color: '#f87171', width: 5}, showlegend: false
-    };
-    const pole1 = {
+    const pole = {
         x: [0], y: [-alpha], z: [10],
         type: 'scatter3d', mode: 'markers',
         marker: {color: '#fbbf24', size: 9, symbol: 'diamond',
                  line:{color:'#0d1117', width:1.5}}, showlegend: false
     };
-    const pole2 = {
-        x: [0], y: [alpha], z: [10],
-        type: 'scatter3d', mode: 'markers',
-        marker: {color: '#fbbf24', size: 9, symbol: 'diamond',
-                 line:{color:'#0d1117', width:1.5}}, showlegend: false
-    };
 
-    Plotly.react('pbi', [surf, bnd1, bnd2, pole1, pole2], {
+    Plotly.react('p3d', [surf, bnd, pole], {
         paper_bgcolor: '#181d28',
         scene: {
             xaxis: {title:{text:'ω (虚轴)',font:DARK_FONT}, tickfont:DARK_FONT,
                     gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28'},
             yaxis: {title:{text:'σ (实轴)',font:DARK_FONT}, tickfont:DARK_FONT,
                     gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28'},
-            zaxis: {title:{text:'|X(s)|',font:DARK_FONT}, tickfont:DARK_FONT,
+            zaxis: {title:{text:'|Z(s)|',font:DARK_FONT}, tickfont:DARK_FONT,
                     gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28',
                     range:[0, 10]},
             bgcolor: '#181d28',
-            camera: bilateralCamera,
+            camera: currentCamera,
             aspectmode: 'cube'
         },
         margin: {l:0, r:0, t:40, b:0},
-        title: {text:'窗口 [-30, ' + T_right.toFixed(1) + ']  |  T_right = ' + T_right.toFixed(1),
-                font:{...DARK_FONT, size:14, color:'#4a9eff'}}
+        title: {text:'T = ' + T.toFixed(1), font:{...DARK_FONT, size:15, color:'#4a9eff'}}
+    }, {responsive: true, displaylogo: false});
+}
+
+// ===== 绘制三点对比图 =====
+function drawCmp(){
+    const Tv = [];
+    for(let t = 0.1; t <= 30; t += 0.2) Tv.push(t);
+    const om = 1;
+    const sigs = [0, -alpha, -2];
+    const labs = ['σ = 0 (ROC 内)', 'σ = ' + (-alpha).toFixed(1) + ' (边界)', 'σ = -2 (ROC 外)'];
+    const cols = ['#4ade80', '#fbbf24', '#f87171'];
+    const tr = [];
+    for(let i = 0; i < 3; i++){
+        tr.push({
+            x: Tv,
+            y: Tv.map(t => cz(sigs[i], om, t, alpha).m),
+            mode: 'lines', name: labs[i],
+            line: {color: cols[i], width: 2.5}
+        });
+    }
+    const tm = 1 / Math.sqrt(alpha*alpha + om*om);
+    tr.push({
+        x: [0, 30], y: [tm, tm],
+        mode: 'lines', name: '理论值 ' + tm.toFixed(3),
+        line: {color: '#86efac', width: 1.2, dash: 'dash'}
+    });
+
+    Plotly.react('pcmp', tr, {
+        paper_bgcolor: '#181d28',
+        plot_bgcolor: '#181d28',
+        font: DARK_FONT,
+        xaxis: {
+            title: {text:'T (积分上限)', font:DARK_FONT},
+            tickfont: DARK_FONT, gridcolor: DARK_GRID, zerolinecolor: DARK_ZERO
+        },
+        yaxis: {
+            title: {text:'|Z(s)|', font:DARK_FONT},
+            tickfont: DARK_FONT, gridcolor: DARK_GRID, zerolinecolor: DARK_ZERO,
+            type: isLog ? 'log' : 'linear',
+            range: isLog ? [-2, 3] : [0, 4.5]
+        },
+        margin: {l:55, r:15, t:15, b:45},
+        legend: {x:0.68, y:0.96, bgcolor:'rgba(0,0,0,0)', font:DARK_FONT},
+        hovermode: 'x unified'
+    }, {responsive: true, displaylogo: false});
+}
+
+// ===== 绘制边界振荡专题图 =====
+function drawBnd(){
+    const Tv = [];
+    for(let t = 0; t <= 20; t += 0.1) Tv.push(t);
+    const oms = [0.3, 0.5, 1.0, 2.0];
+    const cols = ['#c084fc', '#60a5fa', '#22d3ee', '#34d399'];
+    const tr = [];
+    for(let i = 0; i < 4; i++){
+        tr.push({
+            x: Tv,
+            y: Tv.map(t => cz(-alpha, oms[i], t, alpha).m),
+            mode: 'lines', name: 'ω = ' + oms[i],
+            line: {color: cols[i], width: 2.2}
+        });
+    }
+
+    Plotly.react('pbnd', tr, {
+        paper_bgcolor: '#181d28',
+        plot_bgcolor: '#181d28',
+        font: DARK_FONT,
+        xaxis: {
+            title: {text:'T (积分上限)', font:DARK_FONT},
+            tickfont: DARK_FONT, gridcolor: DARK_GRID, zerolinecolor: DARK_ZERO
+        },
+        yaxis: {
+            title: {text:'|Z(s)|', font:DARK_FONT},
+            tickfont: DARK_FONT, gridcolor: DARK_GRID, zerolinecolor: DARK_ZERO
+        },
+        margin: {l:55, r:15, t:15, b:45},
+        legend: {x:0.85, y:0.96, bgcolor:'rgba(0,0,0,0)', font:DARK_FONT},
+        hovermode: 'x unified'
     }, {responsive: true, displaylogo: false});
 }
 
 // ===== 事件绑定 =====
+document.getElementById('Ts').oninput = e => {
+    T = +e.target.value;
+    document.getElementById('Tv').textContent = T.toFixed(1);
+    draw3d();
+};
 document.getElementById('As').oninput = e => {
     alpha = +e.target.value;
     document.getElementById('Av').textContent = alpha.toFixed(1);
-    drawBilateral();
+    draw3d(); drawCmp(); drawBnd();
 };
-document.getElementById('Trs').oninput = e => {
-    T_right = +e.target.value;
-    document.getElementById('Trv').textContent = T_right.toFixed(1);
-    drawBilateral();
+document.getElementById('logBtn').onclick = () => {
+    isLog = !isLog;
+    drawCmp();
 };
 
 window.onload = () => {
-    drawBilateral();
-    document.getElementById('pbi').on('plotly_relayout', function(eventdata){
+    draw3d(); drawCmp(); drawBnd();
+    document.getElementById('p3d').on('plotly_relayout', function(eventdata){
         if(eventdata['scene.camera']){
-            bilateralCamera = eventdata['scene.camera'];
+            currentCamera = eventdata['scene.camera'];
         }
     });
 };
