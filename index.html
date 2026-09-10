@@ -269,6 +269,25 @@ h2 mjx-container[jax="CHTML"]{
     </div>
 </div>
 
+<!-- 双边信号对比 -->
+<div class="card">
+    <h2>4. 双边信号对比：$x(t) = e^{-a|t|}$（非因果，带状 ROC）</h2>
+    <div class="control-block" style="margin-bottom:16px">
+        <div class="label-row">
+            <span>积分窗口右端点 $T_{\text{right}}$（左端点固定 $-30$）</span>
+            <b id="Trv">0.0</b>
+        </div>
+        <input type="range" id="Trs" min="-30" max="30" step="0.5" value="0">
+    </div>
+    <div id="pbi" style="height:520px"></div>
+    <p class="note">
+        两个极点 $s = \pm a$，ROC 为带状 $-a < \sigma < a$。
+        滑块从左拖到右：先只有负时间部分 $e^{at}$（要求 $\sigma < a$ 才收敛），
+        再逐渐加入正时间部分 $e^{-at}$（要求 $\sigma > -a$ 才收敛），
+        两者交集就是带状 ROC。两条红色竖线分别为 $\sigma = \pm a$。
+    </p>
+</div>
+
 <!-- 核心结论 -->
 <div class="card conclusion-card">
     <h2>核心结论</h2>
@@ -293,6 +312,10 @@ let alpha = 1.0, T = 5.0, isLog = false;
 
 // 保存 3D 图当前视角，避免拖动滑块时视角被重置
 let currentCamera = {eye:{x:1.7, y:-1.9, z:1.25}};
+// 双边信号 3D 图视角
+let bilateralCamera = {eye:{x:1.7, y:-1.9, z:1.25}};
+// 双边信号积分窗口右端点（左端点固定 -30）
+let T_right = 0.0;
 
 // ===== 暗色主题通用配置 =====
 const DARK_FONT = {color:'#e8edf3', family:"'Segoe UI',system-ui,sans-serif", size:12};
@@ -466,6 +489,140 @@ function drawBnd(){
     }, {responsive: true, displaylogo: false});
 }
 
+// ===== 双边信号 x(t) = e^{-a|t|} 的计算 =====
+function cz_bilateral(sig, om, T_left, T_right, a){
+    // X_T(s) = ∫_{-T_left}^{T_right} e^{-a|t|} e^{-st} dt
+    // 负时间部分(t<0): x=e^{at}, 积分 = [1 - e^{-(a-s)T_left}]/(a-s)
+    // 正时间部分(t>0): x=e^{-at}, 积分 = [1 - e^{-(a+s)T_right}]/(a+s)
+    // 当 T_right < 0 时, 正时间部分为反向积分(负值), 公式仍成立
+
+    // --- 负时间部分 ---
+    const d1r = a - sig, d1i = -om;  // a - s
+    const e1mag = Math.exp(-(a - sig) * T_left);
+    const e1r = e1mag * Math.cos(om * T_left);
+    const e1i = e1mag * Math.sin(om * T_left);
+    const n1r = 1 - e1r, n1i = -e1i;
+    const d1m2 = d1r*d1r + d1i*d1i;
+    let p1r = 0, p1i = 0;
+    if(d1m2 > 1e-10){
+        p1r = (n1r*d1r + n1i*d1i) / d1m2;
+        p1i = (n1i*d1r - n1r*d1i) / d1m2;
+    }
+
+    // --- 正时间部分 ---
+    const d2r = a + sig, d2i = om;  // a + s
+    const e2mag = Math.exp(-(a + sig) * T_right);
+    const e2r = e2mag * Math.cos(-om * T_right);
+    const e2i = e2mag * Math.sin(-om * T_right);
+    const n2r = 1 - e2r, n2i = -e2i;
+    const d2m2 = d2r*d2r + d2i*d2i;
+    let p2r = 0, p2i = 0;
+    if(d2m2 > 1e-10){
+        p2r = (n2r*d2r + n2i*d2i) / d2m2;
+        p2i = (n2i*d2r - n2r*d2i) / d2m2;
+    }
+
+    // 溢出保护
+    p1r = isFinite(p1r) ? p1r : 1e6;
+    p1i = isFinite(p1i) ? p1i : 0;
+    p2r = isFinite(p2r) ? p2r : 1e6;
+    p2i = isFinite(p2i) ? p2i : 0;
+
+    const Zr = p1r + p2r;
+    const Zi = p1i + p2i;
+    const mag = Math.sqrt(Zr*Zr + Zi*Zi);
+    const phase = Math.atan2(Zi, Zr);
+    return {m: Math.min(mag, 10), p: phase};
+}
+
+// ===== 双边信号网格生成 =====
+function grid_bilateral(T_left, T_right, a){
+    const smin = -3, smax = 3, wmin = -3, wmax = 3, step = 0.12;
+    const sv = [], wv = [];
+    for(let s = smin; s <= smax; s += step) sv.push(s);
+    for(let w = wmin; w <= wmax; w += step) wv.push(w);
+    const mg = [], pg = [];
+    for(let i = 0; i < sv.length; i++){
+        const mr = [], pr = [];
+        for(let j = 0; j < wv.length; j++){
+            const z = cz_bilateral(sv[i], wv[j], T_left, T_right, a);
+            mr.push(z.m);
+            pr.push(z.p);
+        }
+        mg.push(mr); pg.push(pr);
+    }
+    return {sv, wv, mg, pg};
+}
+
+// ===== 绘制双边信号 3D 模-相图 =====
+function drawBilateral(){
+    const T_left = 30;  // 左端点固定
+    const d = grid_bilateral(T_left, T_right, alpha);
+    const surf = {
+        x: d.wv, y: d.sv, z: d.mg,
+        surfacecolor: d.pg,
+        type: 'surface',
+        colorscale: 'HSV',
+        cmin: -Math.PI, cmax: Math.PI,
+        colorbar: {
+            title: {text:'相角', font:DARK_FONT},
+            tickfont: DARK_FONT,
+            tickvals: [-3.14, -1.57, 0, 1.57, 3.14],
+            ticktext: ['-π', '-π/2', '0', 'π/2', 'π'],
+            thickness: 15
+        },
+        contours: {z: {show:false}}
+    };
+    // 两条 ROC 边界线: sigma = -a 和 sigma = a
+    const bx = d.wv;
+    const bnd1 = {
+        x: bx, y: Array(bx.length).fill(-alpha), z: Array(bx.length).fill(10),
+        type: 'scatter3d', mode: 'lines',
+        line: {color: '#f87171', width: 5},
+        name: 'ROC边界σ=-a', showlegend: false
+    };
+    const bnd2 = {
+        x: bx, y: Array(bx.length).fill(alpha), z: Array(bx.length).fill(10),
+        type: 'scatter3d', mode: 'lines',
+        line: {color: '#f87171', width: 5},
+        name: 'ROC边界σ=a', showlegend: false
+    };
+    // 两个极点标记
+    const pole1 = {
+        x: [0], y: [-alpha], z: [10],
+        type: 'scatter3d', mode: 'markers',
+        marker: {color: '#fbbf24', size: 9, symbol: 'diamond',
+                 line:{color:'#0d1117', width:1.5}},
+        name: '极点s=-a', showlegend: false
+    };
+    const pole2 = {
+        x: [0], y: [alpha], z: [10],
+        type: 'scatter3d', mode: 'markers',
+        marker: {color: '#fbbf24', size: 9, symbol: 'diamond',
+                 line:{color:'#0d1117', width:1.5}},
+        name: '极点s=a', showlegend: false
+    };
+
+    Plotly.react('pbi', [surf, bnd1, bnd2, pole1, pole2], {
+        paper_bgcolor: '#181d28',
+        scene: {
+            xaxis: {title:{text:'ω (虚轴)',font:DARK_FONT}, tickfont:DARK_FONT,
+                    gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28'},
+            yaxis: {title:{text:'σ (实轴)',font:DARK_FONT}, tickfont:DARK_FONT,
+                    gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28'},
+            zaxis: {title:{text:'|X(s)|',font:DARK_FONT}, tickfont:DARK_FONT,
+                    gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28',
+                    range:[0, 10]},
+            bgcolor: '#181d28',
+            camera: bilateralCamera,
+            aspectmode: 'cube'
+        },
+        margin: {l:0, r:0, t:40, b:0},
+        title: {text:'T_right = ' + T_right.toFixed(1) + '  (窗口 [-30, ' + T_right.toFixed(1) + '])',
+                font:{...DARK_FONT, size:14, color:'#4a9eff'}}
+    }, {responsive: true, displaylogo: false});
+}
+
 // ===== 事件绑定 =====
 document.getElementById('Ts').oninput = e => {
     T = +e.target.value;
@@ -475,19 +632,31 @@ document.getElementById('Ts').oninput = e => {
 document.getElementById('As').oninput = e => {
     alpha = +e.target.value;
     document.getElementById('Av').textContent = alpha.toFixed(1);
-    draw3d(); drawCmp(); drawBnd();
+    draw3d(); drawCmp(); drawBnd(); drawBilateral();
 };
 document.getElementById('logBtn').onclick = () => {
     isLog = !isLog;
     drawCmp();
 };
+// 双边信号积分窗口右端点滑块
+document.getElementById('Trs').oninput = e => {
+    T_right = +e.target.value;
+    document.getElementById('Trv').textContent = T_right.toFixed(1);
+    drawBilateral();
+};
 
 window.onload = () => {
-    draw3d(); drawCmp(); drawBnd();
+    draw3d(); drawCmp(); drawBnd(); drawBilateral();
     // 监听 3D 图视角变化，用户旋转/缩放后保存当前视角
     document.getElementById('p3d').on('plotly_relayout', function(eventdata){
         if(eventdata['scene.camera']){
             currentCamera = eventdata['scene.camera'];
+        }
+    });
+    // 监听双边信号 3D 图视角变化
+    document.getElementById('pbi').on('plotly_relayout', function(eventdata){
+        if(eventdata['scene.camera']){
+            bilateralCamera = eventdata['scene.camera'];
         }
     });
 };
