@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>拉普拉斯变换收敛域可视化 — 双边信号</title>
+<title>拉普拉斯变换收敛域 (ROC) 可视化</title>
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-<!-- MathJax v3: LaTeX 公式渲染 -->
 <script>
 window.MathJax = {
     tex: {
@@ -19,407 +18,406 @@ window.MathJax = {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 <style>
-/* ===== 3b1b 暗色系全局 ===== */
 :root{
-    --bg:#0d1117;
-    --card:#181d28;
-    --card-border:#2a3344;
-    --text:#e8edf3;
-    --text-dim:#8b98a9;
-    --accent-blue:#4a9eff;
-    --accent-green:#4ade80;
-    --accent-red:#f87171;
-    --accent-gold:#fbbf24;
-    --accent-purple:#c084fc;
-    --accent-cyan:#22d3ee;
+    --bg:#0d1117; --card:#181d28; --card-border:#2a3344;
+    --text:#e8edf3; --text-dim:#8b98a9;
+    --accent-blue:#4a9eff; --accent-green:#4ade80; --accent-red:#f87171;
+    --accent-gold:#fbbf24; --accent-purple:#c084fc; --accent-cyan:#22d3ee;
     --grid:#252d3b;
 }
 *{box-sizing:border-box}
 body{
-    max-width:1200px;
-    margin:0 auto;
-    padding:28px 20px 60px;
+    max-width:1200px; margin:0 auto; padding:28px 20px 60px;
     font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-    background:var(--bg);
-    color:var(--text);
-    line-height:1.6;
+    background:var(--bg); color:var(--text); line-height:1.6;
 }
-h1{
-    text-align:center;
-    color:var(--text);
-    font-weight:700;
-    font-size:1.8em;
-    margin-bottom:6px;
-    letter-spacing:0.5px;
-}
-.subtitle{
-    text-align:center;
-    color:var(--text-dim);
-    font-size:0.95em;
-    margin-bottom:28px;
-}
+h1{text-align:center; font-weight:700; font-size:1.8em; margin-bottom:6px; letter-spacing:0.5px;}
+.subtitle{text-align:center; color:var(--text-dim); font-size:0.95em; margin-bottom:24px;}
 .card{
-    background:var(--card);
-    border:1px solid var(--card-border);
-    border-radius:14px;
-    padding:24px 26px;
-    margin-bottom:24px;
-    box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    background:var(--card); border:1px solid var(--card-border); border-radius:14px;
+    padding:24px 26px; margin-bottom:24px; box-shadow:0 4px 20px rgba(0,0,0,0.3);
 }
 h2{
-    color:var(--text);
-    margin-top:0;
-    margin-bottom:16px;
-    font-size:1.2em;
-    font-weight:600;
-    border-left:3px solid var(--accent-blue);
-    padding-left:12px;
+    color:var(--text); margin-top:0; margin-bottom:16px; font-size:1.2em; font-weight:600;
+    border-left:3px solid var(--accent-blue); padding-left:12px;
 }
-.row{display:grid;grid-template-columns:1fr 1fr;gap:32px}
-.note{font-size:0.88em;color:var(--text-dim);margin-top:10px}
+.row{display:grid; grid-template-columns:1fr 1fr; gap:32px;}
+.note{font-size:0.88em; color:var(--text-dim); margin-top:10px;}
 
-/* ===== 导航 Tab ===== */
-.nav-tabs{
-    display:flex;
-    justify-content:center;
-    gap:12px;
-    margin-bottom:28px;
+.tab-bar{
+    display:flex; justify-content:center; gap:10px; margin-bottom:24px; flex-wrap:wrap;
 }
-.nav-tab{
-    padding:10px 28px;
-    border-radius:8px;
-    text-decoration:none;
-    font-size:0.95em;
-    transition:all 0.2s;
-    border:1px solid var(--card-border);
-    color:var(--text-dim);
-    background:var(--card);
+.tab-btn{
+    padding:12px 26px; border-radius:10px; border:1px solid var(--card-border);
+    background:var(--card); color:var(--text-dim); cursor:pointer;
+    font-size:0.95em; font-family:inherit; transition:all 0.2s;
 }
-.nav-tab:hover{
-    border-color:var(--accent-blue);
-    color:var(--text);
-    transform:translateY(-1px);
+.tab-btn:hover{border-color:var(--accent-blue); color:var(--text); transform:translateY(-1px);}
+.tab-btn.active{
+    background:var(--accent-blue); color:var(--bg); border-color:var(--accent-blue); font-weight:600;
 }
-.nav-tab.active{
-    background:var(--accent-blue);
-    color:var(--bg);
-    border-color:var(--accent-blue);
-    font-weight:600;
-}
+.tab-pane{display:none;}
+.tab-pane.active{display:block; animation:fadeIn 0.25s ease;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
 
-/* ===== 滑块 ===== */
-.control-block{margin-bottom:14px}
+.control-block{margin-bottom:14px;}
 .label-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:8px;
-    font-size:0.95em;
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:0.95em;
 }
-.label-row span{color:var(--text-dim)}
+.label-row span{color:var(--text-dim);}
 .label-row b{
-    color:var(--accent-blue);
-    font-family:'Consolas','Courier New',monospace;
-    font-size:1.05em;
+    color:var(--accent-blue); font-family:'Consolas','Courier New',monospace; font-size:1.05em;
 }
 input[type=range]{
-    -webkit-appearance:none;
-    appearance:none;
-    width:100%;
-    height:6px;
-    background:var(--grid);
-    border-radius:3px;
-    outline:none;
-    cursor:pointer;
+    -webkit-appearance:none; appearance:none; width:100%; height:6px;
+    background:var(--grid); border-radius:3px; outline:none; cursor:pointer;
 }
 input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;
-    appearance:none;
-    width:20px;height:20px;
-    border-radius:50%;
-    background:var(--accent-blue);
-    cursor:pointer;
-    box-shadow:0 0 10px rgba(74,158,255,0.5);
-    border:2px solid var(--bg);
-    transition:transform 0.15s;
+    -webkit-appearance:none; appearance:none; width:20px; height:20px; border-radius:50%;
+    background:var(--accent-blue); cursor:pointer; box-shadow:0 0 10px rgba(74,158,255,0.5);
+    border:2px solid var(--bg); transition:transform 0.15s;
 }
-input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15);}
 input[type=range]::-moz-range-thumb{
-    width:20px;height:20px;
-    border-radius:50%;
-    background:var(--accent-blue);
-    cursor:pointer;
-    border:2px solid var(--bg);
-    box-shadow:0 0 10px rgba(74,158,255,0.5);
+    width:20px; height:20px; border-radius:50%; background:var(--accent-blue);
+    cursor:pointer; border:2px solid var(--bg); box-shadow:0 0 10px rgba(74,158,255,0.5);
 }
 
-/* ===== 结论卡片 ===== */
-.conclusion-card{
-    background:linear-gradient(135deg,#141b2a 0%,#1a1f30 100%);
-    border:1px solid #2a3a55;
+.btn-dark{
+    padding:7px 16px; border:1px solid var(--card-border); border-radius:7px;
+    background:var(--grid); color:var(--text-dim); cursor:pointer;
+    font-size:0.88em; transition:all 0.2s; float:right;
 }
-.conclusion-card h2{
-    border-left-color:var(--accent-gold);
-    color:var(--accent-gold);
-}
-.conclusion-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:16px;
-}
+.btn-dark:hover{background:var(--accent-blue); color:var(--bg); border-color:var(--accent-blue);}
+
+.conclusion-card{background:linear-gradient(135deg,#141b2a 0%,#1a1f30 100%); border:1px solid #2a3a55;}
+.conclusion-card h2{border-left-color:var(--accent-gold); color:var(--accent-gold);}
+.conclusion-grid{display:grid; gap:16px;}
+.conclusion-grid.cols-2{grid-template-columns:1fr 1fr;}
+.conclusion-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
 .conclusion-item{
-    background:rgba(255,255,255,0.03);
-    border:1px solid var(--card-border);
-    padding:16px 18px;
-    border-radius:10px;
-    transition:transform 0.2s,border-color 0.2s;
+    background:rgba(255,255,255,0.03); border:1px solid var(--card-border);
+    padding:16px 18px; border-radius:10px; transition:transform 0.2s,border-color 0.2s;
 }
-.conclusion-item:hover{
-    transform:translateY(-2px);
-    border-color:var(--accent-blue);
-}
-.conclusion-item b{
-    display:block;
-    font-size:1.05em;
-    margin-bottom:8px;
-}
-.conclusion-item p{
-    font-size:0.88em;
-    color:var(--text-dim);
-    margin:0;
-    line-height:1.55;
-}
-.c-green{color:var(--accent-green)}
-.c-gold{color:var(--accent-gold)}
-.c-red{color:var(--accent-red)}
-.c-cyan{color:var(--accent-cyan)}
+.conclusion-item:hover{transform:translateY(-2px); border-color:var(--accent-blue);}
+.conclusion-item b{display:block; font-size:1.05em; margin-bottom:8px;}
+.conclusion-item p{font-size:0.88em; color:var(--text-dim); margin:0; line-height:1.55;}
+.c-green{color:var(--accent-green);} .c-gold{color:var(--accent-gold);}
+.c-red{color:var(--accent-red);} .c-purple{color:var(--accent-purple);} .c-cyan{color:var(--accent-cyan);}
 
-/* ===== MathJax 暗色主题适配 ===== */
-mjx-container[jax="CHTML"]{
-    color:var(--text) !important;
+.formula-center{
+    text-align:center; margin-top:12px; background:rgba(34,211,238,0.06);
+    padding:14px 20px; border-radius:8px; border:1px solid rgba(34,211,238,0.15);
 }
-h2 mjx-container[jax="CHTML"]{
-    font-size:0.95em !important;
-}
-.subtitle mjx-container[jax="CHTML"]{
-    font-size:0.95em !important;
-}
+.formula-center .formula-desc{display:block; margin-top:10px; font-size:0.9em; color:var(--text-dim);}
+
+mjx-container[jax="CHTML"]{color:var(--text) !important;}
+.formula-center mjx-container[jax="CHTML"]{color:var(--accent-cyan) !important; font-size:1.15em !important;}
+h2 mjx-container[jax="CHTML"]{font-size:0.95em !important;}
+.subtitle mjx-container[jax="CHTML"]{font-size:0.95em !important;}
 </style>
 </head>
 <body>
 
-<!-- 导航 Tab -->
-<div class="nav-tabs">
-    <a href="index.html" class="nav-tab active">双边信号</a>
-    <a href="causal.html" class="nav-tab">因果信号 $e^{-\alpha t}u(t)$</a>
-    <a href="anticausal.html" class="nav-tab">反因果信号 $-e^{-\alpha t}u(-t)$</a>
-</div>
-
 <h1>拉普拉斯变换收敛域 (ROC) 可视化</h1>
-<p class="subtitle">
-    双边信号 $x(t) = e^{-a|t|}$ &nbsp;|&nbsp;
-    $X(s) = \dfrac{2a}{a^2-s^2}$ &nbsp;|&nbsp;
-    ROC: $-a < \operatorname{Re}(s) < a$（带状）
-</p>
+<p class="subtitle">双边拉普拉斯变换三种典型信号对比 — 拖动滑块观察积分窗口展开过程中 $X(s)$ 的收敛 / 振荡 / 发散行为</p>
 
-<!-- 控制面板 -->
-<div class="card">
-<div class="row">
-    <div class="control-block">
-        <div class="label-row"><span>衰减系数 $a$</span><b id="Av">1.0</b></div>
-        <input type="range" id="As" min="0.2" max="2.5" step="0.1" value="1">
-    </div>
-    <div class="control-block">
-        <div class="label-row">
-            <span>积分窗口右端点 $T_{\text{right}}$（左端点固定 $-30$）</span>
-            <b id="Trv">0.0</b>
-        </div>
-        <input type="range" id="Trs" min="-30" max="30" step="0.5" value="0">
-    </div>
-</div>
+<div class="tab-bar">
+    <button class="tab-btn active" data-tab="bilateral">双边信号 $e^{-a|t|}$</button>
+    <button class="tab-btn" data-tab="causal">因果信号 $e^{-\alpha t}u(t)$</button>
+    <button class="tab-btn" data-tab="anticausal">反因果信号 $-e^{-\alpha t}u(-t)$</button>
 </div>
 
-<!-- 3D 模-相图 -->
+<!-- 双边信号 -->
+<div id="tab-bilateral" class="tab-pane active">
+<p class="subtitle">$X(s) = \dfrac{2a}{a^2-s^2}$ &nbsp;|&nbsp; ROC: $-a < \operatorname{Re}(s) < a$（带状）</p>
+<div class="card"><div class="row">
+    <div class="control-block">
+        <div class="label-row"><span>衰减系数 $a$</span><b id="bi_Av">1.0</b></div>
+        <input type="range" id="bi_As" min="0.2" max="2.5" step="0.1" value="1">
+    </div>
+    <div class="control-block">
+        <div class="label-row"><span>积分窗口右端点 $T_{\text{right}}$（左端点固定 $-30$）</span><b id="bi_Trv">0.0</b></div>
+        <input type="range" id="bi_Trs" min="-30" max="30" step="0.5" value="0">
+    </div>
+</div></div>
 <div class="card">
     <h2>3D 模-相图（Z轴 = 幅值，颜色 = 相角）</h2>
-    <div id="pbi" style="height:560px"></div>
-    <p class="note">
-        两个极点 $s = \pm a$（金色菱形），两条红色竖线为 ROC 边界 $\sigma = \pm a$。
-        拖动 $T_{\text{right}}$ 从左到右：积分窗口从空 → 只含负时间部分 $e^{at}$（要求 $\sigma<a$）→ 逐渐加入正时间部分 $e^{-at}$（要求 $\sigma>-a$）→ 完整双边积分。
-        两者收敛条件的交集就是带状 ROC $-a<\sigma<a$。鼠标可旋转 / 缩放 / 平移。
-    </p>
+    <div id="bi_pbi" style="height:560px"></div>
+    <p class="note">两个极点 $s = \pm a$（金色菱形），两条红色竖线为 ROC 边界 $\sigma = \pm a$。拖动 $T_{\text{right}}$ 从左到右：积分窗口从空 → 只含负时间部分 → 逐渐加入正时间部分 → 完整双边积分。两者收敛条件的交集就是带状 ROC。</p>
 </div>
-
-<!-- 核心结论 -->
 <div class="card conclusion-card">
     <h2>双边信号的核心结论</h2>
-    <div class="conclusion-grid">
-        <div class="conclusion-item">
-            <b class="c-cyan">● 负时间部分 $t<0$：$x(t)=e^{at}$</b>
-            <p>积分 $\int_{-\infty}^0 e^{(a-s)t}dt$ 收敛条件为 $\operatorname{Re}(s) < a$。对应复平面左半部分（极点 $s=a$ 左侧）。</p>
-        </div>
-        <div class="conclusion-item">
-            <b class="c-green">● 正时间部分 $t>0$：$x(t)=e^{-at}$</b>
-            <p>积分 $\int_0^\infty e^{-(a+s)t}dt$ 收敛条件为 $\operatorname{Re}(s) > -a$。对应复平面右半部分（极点 $s=-a$ 右侧）。</p>
-        </div>
-        <div class="conclusion-item">
-            <b class="c-gold">● ROC = 两部分收敛条件的交集</b>
-            <p>$-a < \sigma < a$，是一条带状区域。带宽为 $2a$，$a$ 越小 ROC 越窄。这和因果信号的半平面 ROC 形成本质区别。</p>
-        </div>
-        <div class="conclusion-item">
-            <b class="c-red">● 两个极点决定系统模态</b>
-            <p>$s=a$ 对应负时间的增长模态，$s=-a$ 对应正时间的衰减模态。双边信号的时域响应由两个极点共同决定，逆变换需要同时考虑两个极点的留数。</p>
-        </div>
+    <div class="conclusion-grid cols-2">
+        <div class="conclusion-item"><b class="c-cyan">● 负时间部分 $t<0$：$x(t)=e^{at}$</b><p>收敛条件 $\operatorname{Re}(s) < a$，对应极点 $s=a$ 左侧。</p></div>
+        <div class="conclusion-item"><b class="c-green">● 正时间部分 $t>0$：$x(t)=e^{-at}$</b><p>收敛条件 $\operatorname{Re}(s) > -a$，对应极点 $s=-a$ 右侧。</p></div>
+        <div class="conclusion-item"><b class="c-gold">● ROC = 两部分收敛条件的交集</b><p>$-a < \sigma < a$ 是带状区域，带宽 $2a$，$a$ 越小 ROC 越窄。</p></div>
+        <div class="conclusion-item"><b class="c-red">● 两个极点决定系统模态</b><p>$s=a$ 对应负时间增长模态，$s=-a$ 对应正时间衰减模态。</p></div>
     </div>
+</div>
+</div>
+
+<!-- 因果信号 -->
+<div id="tab-causal" class="tab-pane">
+<p class="subtitle">$X(s) = \dfrac{1}{s+\alpha}$ &nbsp;|&nbsp; ROC: $\operatorname{Re}(s) > -\alpha$（右半平面）</p>
+<div class="card"><div class="row">
+    <div class="control-block">
+        <div class="label-row"><span>积分上限 $T$（$T<0$ 时积分区间落在 $t<0$，信号为 0）</span><b id="ca_Tv">5.0</b></div>
+        <input type="range" id="ca_Ts" min="-30" max="30" step="0.2" value="5">
+    </div>
+    <div class="control-block">
+        <div class="label-row"><span>衰减系数 $\alpha$</span><b id="ca_Av">1.0</b></div>
+        <input type="range" id="ca_As" min="0.2" max="3" step="0.1" value="1">
+    </div>
+</div></div>
+<div class="card">
+    <h2>1. 3D 模-相图（Z轴 = 幅值，颜色 = 相角）</h2>
+    <div id="ca_p3d" style="height:520px"></div>
+    <p class="note">红色竖线 = ROC 边界 $\sigma = -\alpha$，金色菱形 = 极点。</p>
+</div>
+<div class="card">
+    <h2>2. 三点对比：ROC 内 / 边界 / ROC 外 — $|Z(s)|$ 随 $T$ 变化</h2>
+    <button id="ca_logBtn" class="btn-dark">切换对数坐标</button>
+    <div id="ca_pcmp" style="height:400px"></div>
+</div>
+<div class="card">
+    <h2>3. ROC 边界振荡专题（$\sigma = -\alpha$）</h2>
+    <div id="ca_pbnd" style="height:400px"></div>
+    <div class="formula-center">
+        $$|Z(s)| = \frac{2\left|\sin\left(\dfrac{\omega T}{2}\right)\right|}{|\omega|}$$
+        <span class="formula-desc">振幅 $= \dfrac{2}{|\omega|}$，&nbsp; 周期 $= \dfrac{2\pi}{|\omega|}$，&nbsp; 永不收敛</span>
+    </div>
+</div>
+<div class="card conclusion-card">
+    <h2>核心结论</h2>
+    <div class="conclusion-grid cols-3">
+        <div class="conclusion-item"><b class="c-green">● 收敛 = 曲线贴平</b><p>ROC 内 $T$ 增大后 $|Z(s)|$ 趋于定值，极限存在。</p></div>
+        <div class="conclusion-item"><b class="c-gold">● 振荡 = 相位不收敛</b><p>边界上模不爆炸，但相位持续旋转，极限不存在。</p></div>
+        <div class="conclusion-item"><b class="c-red">● 发散 = 指数爆炸</b><p>ROC 外幅值随 $T$ 指数增长，积分无意义。</p></div>
+    </div>
+</div>
+</div>
+
+<!-- 反因果信号 -->
+<div id="tab-anticausal" class="tab-pane">
+<p class="subtitle">$X(s) = \dfrac{1}{s+\alpha}$ &nbsp;|&nbsp; ROC: $\operatorname{Re}(s) < -\alpha$（左半平面）</p>
+<div class="card"><div class="row">
+    <div class="control-block">
+        <div class="label-row"><span>衰减系数 $\alpha$</span><b id="ac_Av">1.0</b></div>
+        <input type="range" id="ac_As" min="0.2" max="3" step="0.1" value="1">
+    </div>
+    <div class="control-block">
+        <div class="label-row"><span>积分深度 $T$（$T<0$ 时积分区间落在 $t>0$，信号为 0）</span><b id="ac_Tv">5.0</b></div>
+        <input type="range" id="ac_Ts" min="-30" max="30" step="0.2" value="5">
+    </div>
+</div></div>
+<div class="card">
+    <h2>3D 模-相图（Z轴 = 幅值，颜色 = 相角）</h2>
+    <div id="ac_pac" style="height:560px"></div>
+    <p class="note">红色竖线 = ROC 边界 $\sigma = -\alpha$，金色菱形 = 极点。注意：<b style="color:var(--accent-red)">收敛区域在左侧（$\sigma<-\alpha$）</b>，和因果信号正好左右镜像！</p>
+</div>
+<div class="card conclusion-card">
+    <h2>反因果信号的核心结论</h2>
+    <div class="conclusion-grid cols-2">
+        <div class="conclusion-item"><b class="c-purple">● 信号只存在于 $t<0$</b><p>$u(-t)$ 仅在 $t<0$ 时为 1，积分从 $-\infty$ 到 $0$。</p></div>
+        <div class="conclusion-item"><b class="c-cyan">● 收敛条件：$\sigma < -\alpha$</b><p>ROC 是极点左侧的左半平面，和因果信号正好相反。</p></div>
+        <div class="conclusion-item"><b class="c-gold">● 和因果信号有相同的 $X(s)$！</b><p>变换结果都是 $\frac{1}{s+\alpha}$，但 ROC 完全相反。</p></div>
+        <div class="conclusion-item"><b class="c-red">● ROC 决定逆变换结果</b><p>同一个 $X(s)$，ROC 不同对应完全不同的时域信号。</p></div>
+    </div>
+</div>
 </div>
 
 <script>
-let alpha = 1.0, T_right = 0.0;
-let bilateralCamera = {eye:{x:1.7, y:-1.9, z:1.25}};
-
-// ===== 暗色主题通用配置 =====
 const DARK_FONT = {color:'#e8edf3', family:"'Segoe UI',system-ui,sans-serif", size:12};
 const DARK_GRID = '#252d3b';
 const DARK_ZERO = '#3a4556';
 
-// ===== 双边信号计算 =====
-function cz_bilateral(sig, om, T_left, T_right, a){
-    // 负时间部分(t<0): x=e^{at}, [1 - e^{-(a-s)T_left}]/(a-s)
-    const d1r = a - sig, d1i = -om;
-    const e1mag = Math.exp(-(a - sig) * T_left);
-    const e1r = e1mag * Math.cos(om * T_left);
-    const e1i = e1mag * Math.sin(om * T_left);
-    const n1r = 1 - e1r, n1i = -e1i;
-    const d1m2 = d1r*d1r + d1i*d1i;
-    let p1r = 0, p1i = 0;
-    if(d1m2 > 1e-10){
-        p1r = (n1r*d1r + n1i*d1i) / d1m2;
-        p1i = (n1i*d1r - n1r*d1i) / d1m2;
-    }
+let bi_alpha=1.0, bi_T_right=0.0, bi_camera={eye:{x:1.7,y:-1.9,z:1.25}};
+let ca_alpha=1.0, ca_T=5.0, ca_isLog=false, ca_camera={eye:{x:1.7,y:-1.9,z:1.25}};
+let ac_alpha=1.0, ac_T=5.0, ac_camera={eye:{x:1.7,y:-1.9,z:1.25}};
+let tabInit = {bilateral:true, causal:false, anticausal:false};
 
-    // 正时间部分(t>0): x=e^{-at}, [1 - e^{-(a+s)T_right}]/(a+s)
-    const d2r = a + sig, d2i = om;
-    const e2mag = Math.exp(-(a + sig) * T_right);
-    const e2r = e2mag * Math.cos(-om * T_right);
-    const e2i = e2mag * Math.sin(-om * T_right);
-    const n2r = 1 - e2r, n2i = -e2i;
-    const d2m2 = d2r*d2r + d2i*d2i;
-    let p2r = 0, p2i = 0;
-    if(d2m2 > 1e-10){
-        p2r = (n2r*d2r + n2i*d2i) / d2m2;
-        p2i = (n2i*d2r - n2r*d2i) / d2m2;
-    }
-
-    p1r = isFinite(p1r) ? p1r : 1e6;
-    p1i = isFinite(p1i) ? p1i : 0;
-    p2r = isFinite(p2r) ? p2r : 1e6;
-    p2i = isFinite(p2i) ? p2i : 0;
-
-    const Zr = p1r + p2r;
-    const Zi = p1i + p2i;
-    const mag = Math.sqrt(Zr*Zr + Zi*Zi);
-    const phase = Math.atan2(Zi, Zr);
-    return {m: Math.min(mag, 10), p: phase};
+function switchTab(tab){
+    document.querySelectorAll('.tab-pane').forEach(el=>el.classList.remove('active'));
+    document.getElementById('tab-'+tab).classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab===tab));
+    setTimeout(()=>{
+        document.querySelectorAll('#tab-'+tab+' .js-plotly-plot').forEach(div=>Plotly.Plots.resize(div));
+    },60);
 }
-
-function grid_bilateral(T_left, T_right, a){
-    const smin = -3, smax = 3, wmin = -3, wmax = 3, step = 0.12;
-    const sv = [], wv = [];
-    for(let s = smin; s <= smax; s += step) sv.push(s);
-    for(let w = wmin; w <= wmax; w += step) wv.push(w);
-    const mg = [], pg = [];
-    for(let i = 0; i < sv.length; i++){
-        const mr = [], pr = [];
-        for(let j = 0; j < wv.length; j++){
-            const z = cz_bilateral(sv[i], wv[j], T_left, T_right, a);
-            mr.push(z.m); pr.push(z.p);
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.onclick=()=>{
+        const tab=btn.dataset.tab;
+        switchTab(tab);
+        if(!tabInit[tab]){
+            tabInit[tab]=true;
+            if(tab==='causal') initCausal();
+            if(tab==='anticausal') initAnticausal();
         }
-        mg.push(mr); pg.push(pr);
-    }
-    return {sv, wv, mg, pg};
-}
+    };
+});
 
+// ===== 双边信号 =====
+function cz_bilateral(sig,om,Tl,Tr,a){
+    const d1r=a-sig,d1i=-om;
+    const e1m=Math.exp(-(a-sig)*Tl),e1r=e1m*Math.cos(om*Tl),e1i=e1m*Math.sin(om*Tl);
+    const n1r=1-e1r,n1i=-e1i,d1m2=d1r*d1r+d1i*d1i;
+    let p1r=0,p1i=0;
+    if(d1m2>1e-10){p1r=(n1r*d1r+n1i*d1i)/d1m2;p1i=(n1i*d1r-n1r*d1i)/d1m2;}
+    const d2r=a+sig,d2i=om;
+    const e2m=Math.exp(-(a+sig)*Tr),e2r=e2m*Math.cos(-om*Tr),e2i=e2m*Math.sin(-om*Tr);
+    const n2r=1-e2r,n2i=-e2i,d2m2=d2r*d2r+d2i*d2i;
+    let p2r=0,p2i=0;
+    if(d2m2>1e-10){p2r=(n2r*d2r+n2i*d2i)/d2m2;p2i=(n2i*d2r-n2r*d2i)/d2m2;}
+    p1r=isFinite(p1r)?p1r:1e6;p1i=isFinite(p1i)?p1i:0;
+    p2r=isFinite(p2r)?p2r:1e6;p2i=isFinite(p2i)?p2i:0;
+    const Zr=p1r+p2r,Zi=p1i+p2i;
+    return {m:Math.min(Math.sqrt(Zr*Zr+Zi*Zi),10),p:Math.atan2(Zi,Zr)};
+}
+function grid_bilateral(Tl,Tr,a){
+    const smin=-3,smax=3,wmin=-3,wmax=3,step=0.12;const sv=[],wv=[];
+    for(let s=smin;s<=smax;s+=step)sv.push(s);
+    for(let w=wmin;w<=wmax;w+=step)wv.push(w);
+    const mg=[],pg=[];
+    for(let i=0;i<sv.length;i++){const mr=[],pr=[];
+        for(let j=0;j<wv.length;j++){const z=cz_bilateral(sv[i],wv[j],Tl,Tr,a);mr.push(z.m);pr.push(z.p);}
+        mg.push(mr);pg.push(pr);}
+    return {sv,wv,mg,pg};
+}
 function drawBilateral(){
-    const T_left = 30;
-    const d = grid_bilateral(T_left, T_right, alpha);
-    const surf = {
-        x: d.wv, y: d.sv, z: d.mg,
-        surfacecolor: d.pg,
-        type: 'surface',
-        colorscale: 'HSV',
-        cmin: -Math.PI, cmax: Math.PI,
-        colorbar: {
-            title: {text:'相角', font:DARK_FONT},
-            tickfont: DARK_FONT,
-            tickvals: [-3.14, -1.57, 0, 1.57, 3.14],
-            ticktext: ['-π', '-π/2', '0', 'π/2', 'π'],
-            thickness: 15
-        },
-        contours: {z: {show:false}}
-    };
-    const bx = d.wv;
-    const bnd1 = {
-        x: bx, y: Array(bx.length).fill(-alpha), z: Array(bx.length).fill(10),
-        type: 'scatter3d', mode: 'lines',
-        line: {color: '#f87171', width: 5}, showlegend: false
-    };
-    const bnd2 = {
-        x: bx, y: Array(bx.length).fill(alpha), z: Array(bx.length).fill(10),
-        type: 'scatter3d', mode: 'lines',
-        line: {color: '#f87171', width: 5}, showlegend: false
-    };
-    const pole1 = {
-        x: [0], y: [-alpha], z: [10],
-        type: 'scatter3d', mode: 'markers',
-        marker: {color: '#fbbf24', size: 9, symbol: 'diamond',
-                 line:{color:'#0d1117', width:1.5}}, showlegend: false
-    };
-    const pole2 = {
-        x: [0], y: [alpha], z: [10],
-        type: 'scatter3d', mode: 'markers',
-        marker: {color: '#fbbf24', size: 9, symbol: 'diamond',
-                 line:{color:'#0d1117', width:1.5}}, showlegend: false
-    };
-
-    Plotly.react('pbi', [surf, bnd1, bnd2, pole1, pole2], {
-        paper_bgcolor: '#181d28',
-        scene: {
-            xaxis: {title:{text:'ω (虚轴)',font:DARK_FONT}, tickfont:DARK_FONT,
-                    gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28'},
-            yaxis: {title:{text:'σ (实轴)',font:DARK_FONT}, tickfont:DARK_FONT,
-                    gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28'},
-            zaxis: {title:{text:'|X(s)|',font:DARK_FONT}, tickfont:DARK_FONT,
-                    gridcolor:DARK_GRID, zerolinecolor:DARK_ZERO, backgroundcolor:'#181d28',
-                    range:[0, 10]},
-            bgcolor: '#181d28',
-            camera: bilateralCamera,
-            aspectmode: 'cube'
-        },
-        margin: {l:0, r:0, t:40, b:0},
-        title: {text:'窗口 [-30, ' + T_right.toFixed(1) + ']  |  T_right = ' + T_right.toFixed(1),
-                font:{...DARK_FONT, size:14, color:'#4a9eff'}}
-    }, {responsive: true, displaylogo: false});
+    const d=grid_bilateral(30,bi_T_right,bi_alpha);
+    const surf={x:d.wv,y:d.sv,z:d.mg,surfacecolor:d.pg,type:'surface',colorscale:'HSV',cmin:-Math.PI,cmax:Math.PI,
+        colorbar:{title:{text:'相角',font:DARK_FONT},tickfont:DARK_FONT,tickvals:[-3.14,-1.57,0,1.57,3.14],ticktext:['-π','-π/2','0','π/2','π'],thickness:15},contours:{z:{show:false}}};
+    const bx=d.wv;
+    const b1={x:bx,y:Array(bx.length).fill(-bi_alpha),z:Array(bx.length).fill(10),type:'scatter3d',mode:'lines',line:{color:'#f87171',width:5},showlegend:false};
+    const b2={x:bx,y:Array(bx.length).fill(bi_alpha),z:Array(bx.length).fill(10),type:'scatter3d',mode:'lines',line:{color:'#f87171',width:5},showlegend:false};
+    const p1={x:[0],y:[-bi_alpha],z:[10],type:'scatter3d',mode:'markers',marker:{color:'#fbbf24',size:9,symbol:'diamond',line:{color:'#0d1117',width:1.5}},showlegend:false};
+    const p2={x:[0],y:[bi_alpha],z:[10],type:'scatter3d',mode:'markers',marker:{color:'#fbbf24',size:9,symbol:'diamond',line:{color:'#0d1117',width:1.5}},showlegend:false};
+    Plotly.react('bi_pbi',[surf,b1,b2,p1,p2],{paper_bgcolor:'#181d28',
+        scene:{xaxis:{title:{text:'ω (虚轴)',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO,backgroundcolor:'#181d28'},
+        yaxis:{title:{text:'σ (实轴)',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO,backgroundcolor:'#181d28'},
+        zaxis:{title:{text:'|X(s)|',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO,backgroundcolor:'#181d28',range:[0,10]},
+        bgcolor:'#181d28',camera:bi_camera,aspectmode:'cube'},
+        margin:{l:0,r:0,t:40,b:0},
+        title:{text:'窗口 [-30, '+bi_T_right.toFixed(1)+']  |  T_right = '+bi_T_right.toFixed(1),font:{...DARK_FONT,size:14,color:'#4a9eff'}}},
+        {responsive:true,displaylogo:false});
 }
+document.getElementById('bi_As').oninput=e=>{bi_alpha=+e.target.value;document.getElementById('bi_Av').textContent=bi_alpha.toFixed(1);drawBilateral();};
+document.getElementById('bi_Trs').oninput=e=>{bi_T_right=+e.target.value;document.getElementById('bi_Trv').textContent=bi_T_right.toFixed(1);drawBilateral();};
 
-// ===== 事件绑定 =====
-document.getElementById('As').oninput = e => {
-    alpha = +e.target.value;
-    document.getElementById('Av').textContent = alpha.toFixed(1);
-    drawBilateral();
-};
-document.getElementById('Trs').oninput = e => {
-    T_right = +e.target.value;
-    document.getElementById('Trv').textContent = T_right.toFixed(1);
-    drawBilateral();
-};
+// ===== 因果信号 =====
+function cz_causal(sig,om,T,a){
+    if(T<=0)return{m:0,p:0};
+    const sr=a+sig,si=om,er=Math.exp(-sr*T),ec=Math.cos(om*T),es=Math.sin(om*T);
+    const nr=1-er*ec,ni=er*es,dm2=sr*sr+si*si;
+    if(dm2<1e-10)return{m:1e6,p:0};
+    const r=(nr*sr+ni*si)/dm2,i=(ni*sr-nr*si)/dm2;
+    return{m:Math.sqrt(r*r+i*i),p:Math.atan2(i,r)};
+}
+function grid_causal(T,a){
+    const smin=-3,smax=1,wmin=-3,wmax=3,step=0.1;const sv=[],wv=[];
+    for(let s=smin;s<=smax;s+=step)sv.push(s);
+    for(let w=wmin;w<=wmax;w+=step)wv.push(w);
+    const mg=[],pg=[];
+    for(let i=0;i<sv.length;i++){const mr=[],pr=[];
+        for(let j=0;j<wv.length;j++){const z=cz_causal(sv[i],wv[j],T,a);mr.push(Math.min(z.m,10));pr.push(z.p);}
+        mg.push(mr);pg.push(pr);}
+    return {sv,wv,mg,pg};
+}
+function drawCausal3d(){
+    const d=grid_causal(ca_T,ca_alpha),lo=Math.min(0,ca_T).toFixed(1),hi=Math.max(0,ca_T).toFixed(1);
+    const surf={x:d.wv,y:d.sv,z:d.mg,surfacecolor:d.pg,type:'surface',colorscale:'HSV',cmin:-Math.PI,cmax:Math.PI,
+        colorbar:{title:{text:'相角',font:DARK_FONT},tickfont:DARK_FONT,tickvals:[-3.14,-1.57,0,1.57,3.14],ticktext:['-π','-π/2','0','π/2','π'],thickness:15},contours:{z:{show:false}}};
+    const bx=d.wv;
+    const bnd={x:bx,y:Array(bx.length).fill(-ca_alpha),z:Array(bx.length).fill(10),type:'scatter3d',mode:'lines',line:{color:'#f87171',width:5},showlegend:false};
+    const pole={x:[0],y:[-ca_alpha],z:[10],type:'scatter3d',mode:'markers',marker:{color:'#fbbf24',size:9,symbol:'diamond',line:{color:'#0d1117',width:1.5}},showlegend:false};
+    Plotly.react('ca_p3d',[surf,bnd,pole],{paper_bgcolor:'#181d28',
+        scene:{xaxis:{title:{text:'ω (虚轴)',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO,backgroundcolor:'#181d28'},
+        yaxis:{title:{text:'σ (实轴)',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO,backgroundcolor:'#181d28'},
+        zaxis:{title:{text:'|Z(s)|',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO,backgroundcolor:'#181d28',range:[0,10]},
+        bgcolor:'#181d28',camera:ca_camera,aspectmode:'cube'},
+        margin:{l:0,r:0,t:40,b:0},
+        title:{text:'T = '+ca_T.toFixed(1)+'  (区间 ['+lo+', '+hi+'])',font:{...DARK_FONT,size:15,color:'#4a9eff'}}},
+        {responsive:true,displaylogo:false});
+}
+function drawCausalCmp(){
+    const Tv=[];for(let t=0.1;t<=30;t+=0.2)Tv.push(t);
+    const om=1,sigs=[0,-ca_alpha,-2],labs=['σ = 0 (ROC 内)','σ = '+(-ca_alpha).toFixed(1)+' (边界)','σ = -2 (ROC 外)'],cols=['#4ade80','#fbbf24','#f87171'];
+    const tr=[];
+    for(let i=0;i<3;i++)tr.push({x:Tv,y:Tv.map(t=>cz_causal(sigs[i],om,t,ca_alpha).m),mode:'lines',name:labs[i],line:{color:cols[i],width:2.5}});
+    const tm=1/Math.sqrt(ca_alpha*ca_alpha+om*om);
+    tr.push({x:[0,30],y:[tm,tm],mode:'lines',name:'理论值 '+tm.toFixed(3),line:{color:'#86efac',width:1.2,dash:'dash'}});
+    Plotly.react('ca_pcmp',tr,{paper_bgcolor:'#181d28',plot_bgcolor:'#181d28',font:DARK_FONT,
+        xaxis:{title:{text:'T (积分上限)',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO},
+        yaxis:{title:{text:'|Z(s)|',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO,type:ca_isLog?'log':'linear',range:ca_isLog?[-2,3]:[0,4.5]},
+        margin:{l:55,r:15,t:15,b:45},legend:{x:0.68,y:0.96,bgcolor:'rgba(0,0,0,0)',font:DARK_FONT},hovermode:'x unified'},
+        {responsive:true,displaylogo:false});
+}
+function drawCausalBnd(){
+    const Tv=[];for(let t=0;t<=20;t+=0.1)Tv.push(t);
+    const oms=[0.3,0.5,1.0,2.0],cols=['#c084fc','#60a5fa','#22d3ee','#34d399'];
+    const tr=[];
+    for(let i=0;i<4;i++)tr.push({x:Tv,y:Tv.map(t=>cz_causal(-ca_alpha,oms[i],t,ca_alpha).m),mode:'lines',name:'ω = '+oms[i],line:{color:cols[i],width:2.2}});
+    Plotly.react('ca_pbnd',tr,{paper_bgcolor:'#181d28',plot_bgcolor:'#181d28',font:DARK_FONT,
+        xaxis:{title:{text:'T (积分上限)',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO},
+        yaxis:{title:{text:'|Z(s)|',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO},
+        margin:{l:55,r:15,t:15,b:45},legend:{x:0.85,y:0.96,bgcolor:'rgba(0,0,0,0)',font:DARK_FONT},hovermode:'x unified'},
+        {responsive:true,displaylogo:false});
+}
+function initCausal(){
+    drawCausal3d();drawCausalCmp();drawCausalBnd();
+    document.getElementById('ca_p3d').on('plotly_relayout',function(ed){if(ed['scene.camera'])ca_camera=ed['scene.camera'];});
+}
+document.getElementById('ca_Ts').oninput=e=>{ca_T=+e.target.value;document.getElementById('ca_Tv').textContent=ca_T.toFixed(1);if(tabInit.causal)drawCausal3d();};
+document.getElementById('ca_As').oninput=e=>{ca_alpha=+e.target.value;document.getElementById('ca_Av').textContent=ca_alpha.toFixed(1);if(tabInit.causal){drawCausal3d();drawCausalCmp();drawCausalBnd();}};
+document.getElementById('ca_logBtn').onclick=()=>{ca_isLog=!ca_isLog;if(tabInit.causal)drawCausalCmp();};
 
-window.onload = () => {
+// ===== 反因果信号 =====
+function cz_anticausal(sig,om,T,a){
+    if(T<=0)return{m:0,p:0};
+    const sr=a+sig,si=om,em=Math.exp(sr*T),er=em*Math.cos(si*T),ei=em*Math.sin(si*T);
+    const nr=1-er,ni=-ei,dm2=sr*sr+si*si;
+    if(dm2<1e-10)return{m:1e6,p:0};
+    let r=(nr*sr+ni*si)/dm2,i=(ni*sr-nr*si)/dm2;
+    r=isFinite(r)?r:1e6;i=isFinite(i)?i:0;
+    return{m:Math.min(Math.sqrt(r*r+i*i),10),p:Math.atan2(i,r)};
+}
+function grid_anticausal(T,a){
+    const smin=-3,smax=1,wmin=-3,wmax=3,step=0.1;const sv=[],wv=[];
+    for(let s=smin;s<=smax;s+=step)sv.push(s);
+    for(let w=wmin;w<=wmax;w+=step)wv.push(w);
+    const mg=[],pg=[];
+    for(let i=0;i<sv.length;i++){const mr=[],pr=[];
+        for(let j=0;j<wv.length;j++){const z=cz_anticausal(sv[i],wv[j],T,a);mr.push(z.m);pr.push(z.p);}
+        mg.push(mr);pg.push(pr);}
+    return {sv,wv,mg,pg};
+}
+function drawAnticausal(){
+    const d=grid_anticausal(ac_T,ac_alpha),left=Math.min(-ac_T,0).toFixed(1),right=Math.max(-ac_T,0).toFixed(1);
+    const surf={x:d.wv,y:d.sv,z:d.mg,surfacecolor:d.pg,type:'surface',colorscale:'HSV',cmin:-Math.PI,cmax:Math.PI,
+        colorbar:{title:{text:'相角',font:DARK_FONT},tickfont:DARK_FONT,tickvals:[-3.14,-1.57,0,1.57,3.14],ticktext:['-π','-π/2','0','π/2','π'],thickness:15},contours:{z:{show:false}}};
+    const bx=d.wv;
+    const bnd={x:bx,y:Array(bx.length).fill(-ac_alpha),z:Array(bx.length).fill(10),type:'scatter3d',mode:'lines',line:{color:'#f87171',width:5},showlegend:false};
+    const pole={x:[0],y:[-ac_alpha],z:[10],type:'scatter3d',mode:'markers',marker:{color:'#fbbf24',size:9,symbol:'diamond',line:{color:'#0d1117',width:1.5}},showlegend:false};
+    Plotly.react('ac_pac',[surf,bnd,pole],{paper_bgcolor:'#181d28',
+        scene:{xaxis:{title:{text:'ω (虚轴)',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO,backgroundcolor:'#181d28'},
+        yaxis:{title:{text:'σ (实轴)',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO,backgroundcolor:'#181d28'},
+        zaxis:{title:{text:'|X(s)|',font:DARK_FONT},tickfont:DARK_FONT,gridcolor:DARK_GRID,zerolinecolor:DARK_ZERO,backgroundcolor:'#181d28',range:[0,10]},
+        bgcolor:'#181d28',camera:ac_camera,aspectmode:'cube'},
+        margin:{l:0,r:0,t:40,b:0},
+        title:{text:'T = '+ac_T.toFixed(1)+'  (区间 ['+left+', '+right+'])',font:{...DARK_FONT,size:14,color:'#4a9eff'}}},
+        {responsive:true,displaylogo:false});
+}
+function initAnticausal(){
+    drawAnticausal();
+    document.getElementById('ac_pac').on('plotly_relayout',function(ed){if(ed['scene.camera'])ac_camera=ed['scene.camera'];});
+}
+document.getElementById('ac_As').oninput=e=>{ac_alpha=+e.target.value;document.getElementById('ac_Av').textContent=ac_alpha.toFixed(1);if(tabInit.anticausal)drawAnticausal();};
+document.getElementById('ac_Ts').oninput=e=>{ac_T=+e.target.value;document.getElementById('ac_Tv').textContent=ac_T.toFixed(1);if(tabInit.anticausal)drawAnticausal();};
+
+window.onload=()=>{
     drawBilateral();
-    document.getElementById('pbi').on('plotly_relayout', function(eventdata){
-        if(eventdata['scene.camera']){
-            bilateralCamera = eventdata['scene.camera'];
-        }
-    });
+    document.getElementById('bi_pbi').on('plotly_relayout',function(ed){if(ed['scene.camera'])bi_camera=ed['scene.camera'];});
 };
 </script>
 </body>
